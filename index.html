@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>えいご じしょ</title>
-    <!-- Tesseract.js for OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         * {
@@ -17,9 +16,8 @@
             font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
             background: #f0f8ff;
             min-height: 100vh;
-            min-height: 100dvh; /* iOS Safari/Chrome support */
+            min-height: 100dvh;
             overflow: hidden;
-            /* Fix for iOS bottom safe area */
             padding-bottom: env(safe-area-inset-bottom, 0);
         }
 
@@ -27,7 +25,7 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
-            height: 100dvh; /* iOS Safari/Chrome support */
+            height: 100dvh;
             max-width: 100%;
         }
 
@@ -44,27 +42,23 @@
             object-fit: cover;
         }
 
-        #canvas {
+        #canvas, #detectCanvas {
             display: none;
         }
 
-        /* Focus overlay - corner brackets */
+        /* Square focus overlay with corner brackets */
         .focus-overlay {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 70%;
-            height: 50%;
             pointer-events: none;
             z-index: 10;
+            transition: all 0.15s ease-out;
         }
 
         .corner {
             position: absolute;
-            width: 40px;
-            height: 40px;
-            border-color: #ffeb3b;
+            width: 30px;
+            height: 30px;
+            border-color: #4caf50;
             border-style: solid;
             border-width: 0;
         }
@@ -72,65 +66,37 @@
         .corner-tl {
             top: 0;
             left: 0;
-            border-top-width: 6px;
-            border-left-width: 6px;
-            border-radius: 8px 0 0 0;
+            border-top-width: 5px;
+            border-left-width: 5px;
         }
 
         .corner-tr {
             top: 0;
             right: 0;
-            border-top-width: 6px;
-            border-right-width: 6px;
-            border-radius: 0 8px 0 0;
+            border-top-width: 5px;
+            border-right-width: 5px;
         }
 
         .corner-bl {
             bottom: 0;
             left: 0;
-            border-bottom-width: 6px;
-            border-left-width: 6px;
-            border-radius: 0 0 0 8px;
+            border-bottom-width: 5px;
+            border-left-width: 5px;
         }
 
         .corner-br {
             bottom: 0;
             right: 0;
-            border-bottom-width: 6px;
-            border-right-width: 6px;
-            border-radius: 0 0 8px 0;
+            border-bottom-width: 5px;
+            border-right-width: 5px;
         }
 
-        /* Animated corners */
-        .focus-overlay.active .corner {
-            animation: pulse 1.5s ease-in-out infinite;
+        .focus-overlay.tracking .corner {
+            border-color: #4caf50;
         }
 
-        @keyframes pulse {
-            0%, 100% {
-                border-color: #ffeb3b;
-                transform: scale(1);
-            }
-            50% {
-                border-color: #4caf50;
-                transform: scale(1.05);
-            }
-        }
-
-        /* Center guide text */
-        .center-guide {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 14px;
-            text-align: center;
-            pointer-events: none;
-        }
-
-        .focus-overlay.active .center-guide {
-            display: none;
+        .focus-overlay.not-tracking .corner {
+            border-color: #ffeb3b;
         }
 
         /* Controls */
@@ -141,7 +107,7 @@
             padding: 12px 15px;
             padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            flex-shrink: 0; /* Prevent shrinking */
+            flex-shrink: 0;
         }
 
         .button-row {
@@ -193,7 +159,6 @@
             cursor: not-allowed;
         }
 
-        /* Result display */
         .result-area {
             background: white;
             border-radius: 12px;
@@ -220,64 +185,19 @@
             color: #666;
         }
 
+        .definition-text {
+            font-size: 14px;
+            color: #444;
+            margin: 5px 0;
+            line-height: 1.3;
+            text-align: center;
+        }
+
         .placeholder-text {
             color: #aaa;
             font-size: 16px;
         }
 
-        /* Loading indicator */
-        .loading {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 20;
-        }
-
-        .loading.active {
-            display: block;
-        }
-
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 6px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Permission error */
-        .error-message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            max-width: 80%;
-        }
-
-        .error-message h2 {
-            color: #f44336;
-            margin-bottom: 15px;
-        }
-
-        .error-message p {
-            color: #666;
-            line-height: 1.6;
-        }
-
-        /* Progress indicator */
         .progress-container {
             position: absolute;
             top: 50%;
@@ -316,21 +236,42 @@
             transition: width 0.3s ease;
             width: 0%;
         }
+
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        .error-message h2 {
+            color: #f44336;
+            margin-bottom: 15px;
+        }
+
+        .error-message p {
+            color: #666;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <div class="camera-container">
+        <div class="camera-container" id="cameraContainer">
             <video id="video" autoplay playsinline></video>
             <canvas id="canvas"></canvas>
+            <canvas id="detectCanvas"></canvas>
 
-            <!-- Focus overlay with corner brackets -->
-            <div class="focus-overlay" id="focusOverlay">
+            <div class="focus-overlay not-tracking" id="focusOverlay">
                 <div class="corner corner-tl"></div>
                 <div class="corner corner-tr"></div>
                 <div class="corner corner-bl"></div>
                 <div class="corner corner-br"></div>
-                <div class="center-guide">ここに えを あわせてね</div>
             </div>
 
             <div class="progress-container" id="progressContainer">
@@ -374,220 +315,66 @@
         let japaneseText = '';
         let stream = null;
         let tesseractWorker = null;
+        let detectionRunning = false;
+        let currentCardRect = null;
 
-        // Children's dictionary - common words with child-friendly explanations
+        // Dictionary
         const childrensDictionary = {
-            // Animals
-            'ant': 'あり（ちいさい むし）',
-            'bear': 'くま（おおきい どうぶつ）',
-            'bee': 'はち（はなの みつを あつめる むし）',
-            'bird': 'とり（そらを とぶ）',
-            'butterfly': 'ちょうちょ（きれいな はねの むし）',
-            'cat': 'ねこ',
-            'cow': 'うし（ミルクを くれる）',
-            'dog': 'いぬ',
-            'duck': 'あひる（がーがー なく）',
-            'elephant': 'ぞう（おおきくて ながい はな）',
-            'fish': 'さかな（みずの なかに いる）',
-            'frog': 'かえる（ぴょんぴょん とぶ）',
-            'horse': 'うま',
-            'lion': 'らいおん（どうぶつの おうさま）',
-            'monkey': 'さる',
-            'mouse': 'ねずみ（ちいさい どうぶつ）',
-            'pig': 'ぶた（ぶーぶー なく）',
-            'rabbit': 'うさぎ（ながい みみ）',
-            'sheep': 'ひつじ（もこもこ）',
-            'snake': 'へび（ながい どうぶつ）',
-            'spider': 'くも（あしが 8ほん）',
-            'tiger': 'とら（しまもよう）',
-            'turtle': 'かめ（こうらが ある）',
-            'whale': 'くじら（うみの おおきな どうぶつ）',
-            'zebra': 'しまうま',
-
-            // Food
-            'apple': 'りんご（あかい くだもの）',
-            'banana': 'バナナ（きいろい くだもの）',
-            'bread': 'パン',
-            'cake': 'ケーキ（あまい おかし）',
-            'candy': 'あめ（あまい おかし）',
-            'carrot': 'にんじん（オレンジいろの やさい）',
-            'cheese': 'チーズ',
-            'chocolate': 'チョコレート',
-            'cookie': 'クッキー',
-            'egg': 'たまご',
-            'grape': 'ぶどう',
-            'ice cream': 'アイスクリーム',
-            'juice': 'ジュース',
-            'milk': 'ぎゅうにゅう',
-            'orange': 'オレンジ',
-            'pizza': 'ピザ',
-            'rice': 'ごはん',
-            'strawberry': 'いちご（あかい くだもの）',
-            'tomato': 'トマト（あかい やさい）',
-            'water': 'みず',
-            'beetroot': 'ビーツ（まるくて あかい やさい）',
-
-            // Body parts
-            'arm': 'うで',
-            'ear': 'みみ（おとを きく）',
-            'eye': 'め（ものを みる）',
-            'face': 'かお',
-            'finger': 'ゆび',
-            'foot': 'あし',
-            'hand': 'て',
-            'head': 'あたま',
-            'leg': 'あし',
-            'mouth': 'くち（たべたり はなしたり）',
-            'nose': 'はな（においを かぐ）',
-            'tooth': 'は',
-
-            // Colors
-            'black': 'くろ',
-            'blue': 'あお',
-            'brown': 'ちゃいろ',
-            'green': 'みどり',
-            'orange': 'オレンジいろ',
-            'pink': 'ピンク',
-            'purple': 'むらさき',
-            'red': 'あか',
-            'white': 'しろ',
-            'yellow': 'きいろ',
-
-            // Family
-            'baby': 'あかちゃん',
-            'brother': 'おとうと・おにいちゃん',
-            'dad': 'おとうさん',
-            'daddy': 'パパ',
-            'family': 'かぞく',
-            'father': 'おとうさん',
-            'girl': 'おんなのこ',
-            'boy': 'おとこのこ',
-            'grandma': 'おばあちゃん',
-            'grandpa': 'おじいちゃん',
-            'mom': 'おかあさん',
-            'mommy': 'ママ',
-            'mother': 'おかあさん',
-            'sister': 'いもうと・おねえちゃん',
-
-            // Common objects
-            'ball': 'ボール',
-            'bed': 'ベッド（ねる ところ）',
-            'book': 'ほん',
-            'box': 'はこ',
-            'car': 'くるま',
-            'chair': 'いす（すわる もの）',
-            'clock': 'とけい（じかんが わかる）',
-            'cup': 'コップ',
-            'door': 'ドア',
-            'flower': 'はな',
-            'hat': 'ぼうし',
-            'house': 'いえ・おうち',
-            'key': 'かぎ',
-            'pen': 'ペン（かく もの）',
-            'pencil': 'えんぴつ',
-            'phone': 'でんわ',
-            'picture': 'え・しゃしん',
-            'shoe': 'くつ',
-            'table': 'テーブル',
-            'toy': 'おもちゃ',
-            'tree': 'き',
-            'umbrella': 'かさ（あめの ひに つかう）',
-            'window': 'まど',
-
-            // Actions/Verbs
-            'add': 'たす（かずを あわせる）',
-            'come': 'くる',
-            'dance': 'おどる',
-            'drink': 'のむ',
-            'eat': 'たべる',
-            'go': 'いく',
-            'help': 'たすける',
-            'jump': 'とぶ（ぴょんぴょん）',
-            'listen': 'きく',
-            'look': 'みる',
-            'play': 'あそぶ',
-            'read': 'よむ',
-            'run': 'はしる',
-            'sing': 'うたう',
-            'sit': 'すわる',
-            'sleep': 'ねる',
-            'stand': 'たつ',
-            'stop': 'とまる',
-            'swim': 'およぐ',
-            'talk': 'はなす',
-            'walk': 'あるく',
-            'write': 'かく',
-
-            // Adjectives/Feelings
-            'afraid': 'こわい（びくびく する）',
-            'angry': 'おこっている',
-            'bad': 'わるい',
-            'beautiful': 'きれい・うつくしい',
-            'big': 'おおきい',
-            'cold': 'つめたい・さむい',
-            'good': 'いい・よい',
-            'happy': 'うれしい・しあわせ',
-            'hot': 'あつい',
-            'hungry': 'おなかが すいた',
-            'little': 'ちいさい',
-            'long': 'ながい',
-            'new': 'あたらしい',
-            'old': 'ふるい',
-            'sad': 'かなしい',
-            'short': 'みじかい',
-            'sick': 'びょうき',
-            'small': 'ちいさい',
-            'tall': 'たかい',
-            'tired': 'つかれた',
-
-            // Places
-            'home': 'いえ・おうち',
-            'park': 'こうえん（あそぶ ところ）',
-            'school': 'がっこう',
-            'shop': 'おみせ',
-            'zoo': 'どうぶつえん',
-
-            // People/Occupations
-            'actor': 'はいゆう（げきを する ひと）',
-            'doctor': 'おいしゃさん',
-            'friend': 'ともだち',
-            'teacher': 'せんせい',
-
-            // Other common words
-            'address': 'じゅうしょ（すんでいる ばしょ）',
-            'afternoon': 'ごご（おひるの あと）',
-            'day': 'ひ・いちにち',
-            'hello': 'こんにちは',
-            'morning': 'あさ',
-            'name': 'なまえ',
-            'night': 'よる',
-            'no': 'いいえ',
-            'please': 'おねがいします',
-            'sun': 'たいよう・おひさま',
-            'moon': 'つき',
-            'star': 'ほし',
-            'rain': 'あめ',
-            'snow': 'ゆき',
-            'thank you': 'ありがとう',
-            'yes': 'はい',
-
-            // Numbers
-            'one': 'いち（1）',
-            'two': 'に（2）',
-            'three': 'さん（3）',
-            'four': 'よん（4）',
-            'five': 'ご（5）',
-            'six': 'ろく（6）',
-            'seven': 'なな（7）',
-            'eight': 'はち（8）',
-            'nine': 'きゅう（9）',
-            'ten': 'じゅう（10）'
+            'ant': 'あり', 'bear': 'くま', 'bee': 'はち', 'bird': 'とり',
+            'butterfly': 'ちょうちょ', 'cat': 'ねこ', 'cow': 'うし', 'dog': 'いぬ',
+            'duck': 'あひる', 'elephant': 'ぞう', 'fish': 'さかな', 'frog': 'かえる',
+            'horse': 'うま', 'lion': 'らいおん', 'monkey': 'さる', 'mouse': 'ねずみ',
+            'pig': 'ぶた', 'rabbit': 'うさぎ', 'sheep': 'ひつじ', 'snake': 'へび',
+            'spider': 'くも', 'tiger': 'とら', 'turtle': 'かめ', 'whale': 'くじら',
+            'zebra': 'しまうま', 'apple': 'りんご', 'banana': 'バナナ', 'bread': 'パン',
+            'cake': 'ケーキ', 'candy': 'あめ', 'carrot': 'にんじん', 'cheese': 'チーズ',
+            'chocolate': 'チョコレート', 'cookie': 'クッキー', 'egg': 'たまご',
+            'grape': 'ぶどう', 'juice': 'ジュース', 'milk': 'ぎゅうにゅう',
+            'orange': 'オレンジ', 'pizza': 'ピザ', 'rice': 'ごはん',
+            'strawberry': 'いちご', 'tomato': 'トマト', 'water': 'みず',
+            'arm': 'うで', 'ear': 'みみ', 'eye': 'め', 'face': 'かお',
+            'finger': 'ゆび', 'foot': 'あし', 'hand': 'て', 'head': 'あたま',
+            'mouth': 'くち', 'nose': 'はな', 'tooth': 'は',
+            'black': 'くろ', 'blue': 'あお', 'brown': 'ちゃいろ', 'green': 'みどり',
+            'pink': 'ピンク', 'purple': 'むらさき', 'red': 'あか', 'white': 'しろ',
+            'yellow': 'きいろ', 'baby': 'あかちゃん', 'boy': 'おとこのこ',
+            'girl': 'おんなのこ', 'family': 'かぞく', 'father': 'おとうさん',
+            'mother': 'おかあさん', 'brother': 'おにいちゃん', 'sister': 'おねえちゃん',
+            'ball': 'ボール', 'bed': 'ベッド', 'book': 'ほん', 'box': 'はこ',
+            'car': 'くるま', 'chair': 'いす', 'clock': 'とけい', 'cup': 'コップ',
+            'door': 'ドア', 'flower': 'はな', 'hat': 'ぼうし', 'house': 'おうち',
+            'key': 'かぎ', 'pen': 'ペン', 'pencil': 'えんぴつ', 'phone': 'でんわ',
+            'shoe': 'くつ', 'table': 'テーブル', 'toy': 'おもちゃ', 'tree': 'き',
+            'umbrella': 'かさ', 'window': 'まど', 'add': 'たす', 'come': 'くる',
+            'dance': 'おどる', 'drink': 'のむ', 'eat': 'たべる', 'go': 'いく',
+            'help': 'たすける', 'jump': 'とぶ', 'listen': 'きく', 'look': 'みる',
+            'play': 'あそぶ', 'read': 'よむ', 'run': 'はしる', 'sing': 'うたう',
+            'sit': 'すわる', 'sleep': 'ねる', 'stand': 'たつ', 'stop': 'とまる',
+            'swim': 'およぐ', 'talk': 'はなす', 'walk': 'あるく', 'write': 'かく',
+            'afraid': 'こわい', 'angry': 'おこっている', 'bad': 'わるい',
+            'beautiful': 'きれい', 'big': 'おおきい', 'cold': 'さむい',
+            'good': 'いい', 'happy': 'うれしい', 'hot': 'あつい', 'hungry': 'おなかすいた',
+            'little': 'ちいさい', 'long': 'ながい', 'new': 'あたらしい',
+            'old': 'ふるい', 'sad': 'かなしい', 'short': 'みじかい', 'small': 'ちいさい',
+            'tall': 'たかい', 'tired': 'つかれた', 'home': 'おうち', 'park': 'こうえん',
+            'school': 'がっこう', 'shop': 'おみせ', 'zoo': 'どうぶつえん',
+            'actor': 'はいゆう', 'doctor': 'おいしゃさん', 'friend': 'ともだち',
+            'teacher': 'せんせい', 'address': 'じゅうしょ', 'afternoon': 'ごご',
+            'morning': 'あさ', 'night': 'よる', 'sun': 'たいよう', 'moon': 'つき',
+            'star': 'ほし', 'rain': 'あめ', 'snow': 'ゆき', 'class': 'クラス',
+            'classroom': 'きょうしつ', 'child': 'こども', 'children': 'こどもたち',
+            'city': 'まち', 'chin': 'あご', 'cherry': 'さくらんぼ', 'chef': 'シェフ',
+            'chicken': 'にわとり', 'unhappy': 'かなしい', 'under': 'した',
+            'understand': 'わかる', 'upright': 'まっすぐ', 'upset': 'かなしい'
         };
 
         // Elements
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const detectCanvas = document.getElementById('detectCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const detectCtx = detectCanvas.getContext('2d', { willReadFrequently: true });
+        const cameraContainer = document.getElementById('cameraContainer');
         const focusOverlay = document.getElementById('focusOverlay');
         const progressContainer = document.getElementById('progressContainer');
         const progressText = document.getElementById('progressText');
@@ -598,7 +385,7 @@
         const speakBtn = document.getElementById('speakBtn');
         const translateBtn = document.getElementById('translateBtn');
 
-        // Initialize Tesseract worker
+        // Initialize Tesseract
         async function initTesseract() {
             progressContainer.classList.add('active');
             progressText.textContent = 'じゅんびちゅう...';
@@ -608,8 +395,7 @@
                 tesseractWorker = await Tesseract.createWorker('eng', 1, {
                     logger: m => {
                         if (m.status === 'recognizing text') {
-                            const percent = Math.round(m.progress * 100);
-                            progressFill.style.width = percent + '%';
+                            progressFill.style.width = Math.round(m.progress * 100) + '%';
                         }
                     }
                 });
@@ -638,74 +424,241 @@
                 video.srcObject = stream;
                 await video.play();
 
-                // Set canvas size to match video
                 video.addEventListener('loadedmetadata', () => {
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
+                    detectCanvas.width = video.videoWidth / 4;
+                    detectCanvas.height = video.videoHeight / 4;
+                    startCardDetection();
                 });
-
-                focusOverlay.classList.add('active');
             } catch (err) {
                 console.error('Camera error:', err);
                 errorMessage.style.display = 'block';
-                focusOverlay.style.display = 'none';
             }
         }
 
-        // Capture image from camera (center region only) with preprocessing
-        function captureImage() {
-            const videoWidth = video.videoWidth;
-            const videoHeight = video.videoHeight;
+        // Detect card-like rectangles in the video
+        function detectCards() {
+            if (!video.videoWidth) return [];
 
-            // Calculate center region (70% width, 50% height - matching overlay)
-            const regionWidth = videoWidth * 0.7;
-            const regionHeight = videoHeight * 0.5;
-            const startX = (videoWidth - regionWidth) / 2;
-            const startY = (videoHeight - regionHeight) / 2;
+            const w = detectCanvas.width;
+            const h = detectCanvas.height;
 
-            // Set canvas to region size
-            canvas.width = regionWidth;
-            canvas.height = regionHeight;
+            // Draw scaled down video frame
+            detectCtx.drawImage(video, 0, 0, w, h);
+            const imageData = detectCtx.getImageData(0, 0, w, h);
+            const data = imageData.data;
 
-            // Draw only the center region
-            ctx.drawImage(
-                video,
-                startX, startY, regionWidth, regionHeight,
-                0, 0, regionWidth, regionHeight
-            );
+            // Convert to grayscale and detect edges
+            const gray = new Uint8Array(w * h);
+            const edges = new Uint8Array(w * h);
 
-            // Image preprocessing for better OCR
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < data.length; i += 4) {
+                gray[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+            }
+
+            // Simple edge detection (Sobel-like)
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const idx = y * w + x;
+                    const gx = Math.abs(gray[idx + 1] - gray[idx - 1]);
+                    const gy = Math.abs(gray[idx + w] - gray[idx - w]);
+                    edges[idx] = Math.min(255, gx + gy);
+                }
+            }
+
+            // Find rectangular regions by scanning for edge patterns
+            const cards = [];
+            const minSize = Math.min(w, h) * 0.15;
+            const maxSize = Math.min(w, h) * 0.8;
+
+            // Scan for potential card boundaries using edge density
+            const gridSize = 8;
+            const edgeDensity = [];
+
+            for (let gy = 0; gy < h; gy += gridSize) {
+                for (let gx = 0; gx < w; gx += gridSize) {
+                    let sum = 0;
+                    let count = 0;
+                    for (let dy = 0; dy < gridSize && gy + dy < h; dy++) {
+                        for (let dx = 0; dx < gridSize && gx + dx < w; dx++) {
+                            sum += edges[(gy + dy) * w + (gx + dx)];
+                            count++;
+                        }
+                    }
+                    edgeDensity.push({
+                        x: gx,
+                        y: gy,
+                        density: sum / count
+                    });
+                }
+            }
+
+            // Find regions with high edge density (card borders)
+            const threshold = 30;
+            const highEdge = edgeDensity.filter(e => e.density > threshold);
+
+            if (highEdge.length > 4) {
+                // Find bounding box of high edge regions near center
+                const centerX = w / 2;
+                const centerY = h / 2;
+
+                // Group nearby edge regions
+                const nearCenter = highEdge.filter(e => {
+                    const dx = e.x - centerX;
+                    const dy = e.y - centerY;
+                    return Math.sqrt(dx * dx + dy * dy) < Math.min(w, h) * 0.4;
+                });
+
+                if (nearCenter.length > 0) {
+                    let minX = w, minY = h, maxX = 0, maxY = 0;
+                    nearCenter.forEach(e => {
+                        minX = Math.min(minX, e.x);
+                        minY = Math.min(minY, e.y);
+                        maxX = Math.max(maxX, e.x + gridSize);
+                        maxY = Math.max(maxY, e.y + gridSize);
+                    });
+
+                    const cardW = maxX - minX;
+                    const cardH = maxY - minY;
+
+                    // Make it square (use smaller dimension)
+                    const size = Math.min(cardW, cardH);
+                    if (size >= minSize && size <= maxSize) {
+                        const cx = (minX + maxX) / 2;
+                        const cy = (minY + maxY) / 2;
+
+                        cards.push({
+                            x: (cx - size / 2) * 4,
+                            y: (cy - size / 2) * 4,
+                            width: size * 4,
+                            height: size * 4
+                        });
+                    }
+                }
+            }
+
+            // If no card detected, use center square
+            if (cards.length === 0) {
+                const size = Math.min(video.videoWidth, video.videoHeight) * 0.4;
+                cards.push({
+                    x: (video.videoWidth - size) / 2,
+                    y: (video.videoHeight - size) / 2,
+                    width: size,
+                    height: size
+                });
+            }
+
+            return cards;
+        }
+
+        // Update overlay position
+        function updateOverlay(rect) {
+            const containerRect = cameraContainer.getBoundingClientRect();
+            const videoRect = video.getBoundingClientRect();
+
+            // Calculate scale between video display and actual video
+            const scaleX = videoRect.width / video.videoWidth;
+            const scaleY = videoRect.height / video.videoHeight;
+
+            // Calculate offset (for object-fit: cover)
+            const offsetX = (videoRect.width - video.videoWidth * scaleX) / 2;
+            const offsetY = (videoRect.height - video.videoHeight * scaleY) / 2;
+
+            const displayX = rect.x * scaleX + offsetX;
+            const displayY = rect.y * scaleY + offsetY;
+            const displayW = rect.width * scaleX;
+            const displayH = rect.height * scaleY;
+
+            focusOverlay.style.left = displayX + 'px';
+            focusOverlay.style.top = displayY + 'px';
+            focusOverlay.style.width = displayW + 'px';
+            focusOverlay.style.height = displayH + 'px';
+
+            currentCardRect = rect;
+        }
+
+        // Start card detection loop
+        function startCardDetection() {
+            detectionRunning = true;
+
+            function detect() {
+                if (!detectionRunning) return;
+
+                const cards = detectCards();
+                if (cards.length > 0) {
+                    // Find card closest to center
+                    const centerX = video.videoWidth / 2;
+                    const centerY = video.videoHeight / 2;
+
+                    let closest = cards[0];
+                    let minDist = Infinity;
+
+                    cards.forEach(card => {
+                        const cx = card.x + card.width / 2;
+                        const cy = card.y + card.height / 2;
+                        const dist = Math.sqrt((cx - centerX) ** 2 + (cy - centerY) ** 2);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closest = card;
+                        }
+                    });
+
+                    updateOverlay(closest);
+                    focusOverlay.classList.remove('not-tracking');
+                    focusOverlay.classList.add('tracking');
+                } else {
+                    focusOverlay.classList.remove('tracking');
+                    focusOverlay.classList.add('not-tracking');
+                }
+
+                requestAnimationFrame(detect);
+            }
+
+            detect();
+        }
+
+        // Capture the detected card region
+        function captureCard() {
+            if (!currentCardRect) {
+                // Fallback to center
+                const size = Math.min(video.videoWidth, video.videoHeight) * 0.4;
+                currentCardRect = {
+                    x: (video.videoWidth - size) / 2,
+                    y: (video.videoHeight - size) / 2,
+                    width: size,
+                    height: size
+                };
+            }
+
+            const { x, y, width, height } = currentCardRect;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            ctx.drawImage(video, x, y, width, height, 0, 0, width, height);
+
+            // Preprocessing
+            const imageData = ctx.getImageData(0, 0, width, height);
             const data = imageData.data;
 
             for (let i = 0; i < data.length; i += 4) {
-                // Convert to grayscale
                 const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-
-                // Increase contrast
-                const contrast = 1.5;
+                const contrast = 1.4;
                 const factor = (259 * (contrast * 100 + 255)) / (255 * (259 - contrast * 100));
                 const newGray = Math.max(0, Math.min(255, factor * (gray - 128) + 128));
-
-                // Apply threshold for binarization (helps with printed text)
-                const threshold = 140;
+                const threshold = 145;
                 const finalValue = newGray > threshold ? 255 : 0;
-
-                data[i] = finalValue;     // R
-                data[i + 1] = finalValue; // G
-                data[i + 2] = finalValue; // B
+                data[i] = data[i + 1] = data[i + 2] = finalValue;
             }
 
             ctx.putImageData(imageData, 0, 0);
-
             return canvas;
         }
 
-        // Perform OCR with Tesseract.js - returns word-level data
+        // OCR
         async function performOCR(canvasElement) {
-            if (!tesseractWorker) {
-                throw new Error('Tesseract not initialized');
-            }
+            if (!tesseractWorker) throw new Error('Tesseract not initialized');
 
             progressContainer.classList.add('active');
             progressText.textContent = 'よみとりちゅう...';
@@ -713,197 +666,118 @@
 
             try {
                 const result = await tesseractWorker.recognize(canvasElement);
-
-                // Get words with confidence scores
-                const words = result.data.words || [];
-                const confidentWords = words
-                    .filter(w => w.confidence > 60 && w.text.trim().length > 0)
-                    .map(w => ({
-                        text: w.text.trim(),
-                        confidence: w.confidence
-                    }));
-
-                console.log('OCR Words:', confidentWords);
-                console.log('OCR Full Text:', result.data.text);
-
-                return {
-                    fullText: result.data.text.trim(),
-                    words: confidentWords
-                };
+                console.log('OCR:', result.data.text);
+                return result.data.text.trim();
             } finally {
                 progressContainer.classList.remove('active');
                 progressFill.style.width = '0%';
             }
         }
 
-        // Extract readable text from OCR result
-        function extractReadableText(ocrResult) {
-            const { fullText, words } = ocrResult;
+        // Extract text
+        function extractText(ocrText) {
+            if (!ocrText) return null;
 
-            if (!fullText || fullText.length === 0) {
-                return null;
-            }
-
-            // Clean up the full text for display and reading
-            const cleanedText = fullText
-                .replace(/[^\w\s.,!?'"-]/g, ' ')  // Keep basic punctuation
-                .replace(/\s+/g, ' ')              // Normalize whitespace
+            const cleaned = ocrText
+                .replace(/[^\w\s.,!?'"-]/g, ' ')
+                .replace(/\s+/g, ' ')
                 .trim();
 
-            if (cleanedText.length === 0) {
-                return null;
-            }
+            if (!cleaned) return null;
 
-            // Extract the headword (first significant word, usually bold in dictionaries)
-            const lines = cleanedText.split(/[.\n]/).filter(l => l.trim().length > 0);
-            const firstLine = lines[0] || cleanedText;
-            const firstWords = firstLine.trim().split(/\s+/);
-            const headword = firstWords.find(w => /^[a-zA-Z]{2,}$/.test(w)) || firstWords[0];
+            const words = cleaned.split(/\s+/);
+            const headword = words.find(w => /^[a-zA-Z]{2,}$/.test(w));
 
             return {
-                headword: headword ? headword.toLowerCase() : null,
-                fullText: cleanedText
+                headword: headword ? headword.toLowerCase() : words[0]?.toLowerCase(),
+                fullText: cleaned
             };
         }
 
-        // Get Japanese translation
-        async function getJapaneseTranslation(englishWord) {
-            const lowerWord = englishWord.toLowerCase();
+        // Translation
+        async function getTranslation(word) {
+            if (!word) return '';
+            const lower = word.toLowerCase();
+            if (childrensDictionary[lower]) return childrensDictionary[lower];
 
-            // Check dictionary first
-            if (childrensDictionary[lowerWord]) {
-                return childrensDictionary[lowerWord];
-            }
-
-            // Try online translation API (MyMemory - free)
             try {
-                const response = await fetch(
-                    `https://api.mymemory.translated.net/get?q=${encodeURIComponent(englishWord)}&langpair=en|ja`
-                );
-                const data = await response.json();
-                if (data.responseStatus === 200 && data.responseData.translatedText) {
-                    return data.responseData.translatedText;
-                }
-            } catch (err) {
-                console.error('Translation API error:', err);
+                const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|ja`);
+                const data = await res.json();
+                if (data.responseStatus === 200) return data.responseData.translatedText;
+            } catch (e) {
+                console.error('Translation error:', e);
             }
-
-            return '（ほんやく できませんでした）';
+            return '';
         }
 
-        // Speech synthesis with iOS Safari support
-        let voicesLoaded = false;
-        let englishVoice = null;
-        let japaneseVoice = null;
+        // Speech
+        let englishVoice = null, japaneseVoice = null;
 
         function loadVoices() {
             const voices = speechSynthesis.getVoices();
-            if (voices.length > 0) {
-                voicesLoaded = true;
-                // Find English voice
-                englishVoice = voices.find(v => v.lang.startsWith('en')) || null;
-                // Find Japanese voice
-                japaneseVoice = voices.find(v => v.lang.startsWith('ja')) || null;
-                console.log('Voices loaded:', voices.length, 'EN:', englishVoice?.name, 'JA:', japaneseVoice?.name);
-            }
+            englishVoice = voices.find(v => v.lang.startsWith('en'));
+            japaneseVoice = voices.find(v => v.lang.startsWith('ja'));
         }
-
-        // Load voices on init and when they change
         loadVoices();
         speechSynthesis.onvoiceschanged = loadVoices;
 
-        // Text to speech - English
         function speakEnglish(text) {
             if (!text) return;
-
-            // Cancel any ongoing speech
             speechSynthesis.cancel();
-
-            // Small delay for iOS
             setTimeout(() => {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US';
-                if (englishVoice) utterance.voice = englishVoice;
-                utterance.rate = 0.6; // Slower for children
-                utterance.pitch = 1.1;
-                utterance.volume = 1.0;
-
-                utterance.onerror = (e) => console.error('Speech error:', e);
-
-                speechSynthesis.speak(utterance);
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'en-US';
+                if (englishVoice) u.voice = englishVoice;
+                u.rate = 0.6;
+                speechSynthesis.speak(u);
             }, 100);
         }
 
-        // Text to speech - Japanese
         function speakJapanese(text) {
             if (!text) return;
-
-            // Cancel any ongoing speech
             speechSynthesis.cancel();
-
-            // Small delay for iOS
             setTimeout(() => {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'ja-JP';
-                if (japaneseVoice) utterance.voice = japaneseVoice;
-                utterance.rate = 0.8;
-                utterance.pitch = 1.1;
-                utterance.volume = 1.0;
-
-                utterance.onerror = (e) => console.error('Speech error:', e);
-
-                speechSynthesis.speak(utterance);
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'ja-JP';
+                if (japaneseVoice) u.voice = japaneseVoice;
+                u.rate = 0.8;
+                speechSynthesis.speak(u);
             }, 100);
         }
 
-        // Update result display - shows full text for reading
+        // UI
         function updateResult(headword, fullText, japanese) {
-            currentText = fullText;  // Full text for English speech
+            currentText = fullText;
             japaneseText = japanese;
 
-            // Escape HTML
-            const escapeHtml = (str) => str
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
+            const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
             resultArea.innerHTML = `
-                <div class="english-text">${escapeHtml(headword)}</div>
-                <div class="definition-text" style="font-size: 16px; color: #444; margin: 8px 0; line-height: 1.4; text-align: left; max-height: 80px; overflow-y: auto;">${escapeHtml(fullText)}</div>
-                <div class="japanese-text">${escapeHtml(japanese)}</div>
+                <div class="english-text">${esc(headword)}</div>
+                <div class="definition-text">${esc(fullText)}</div>
+                <div class="japanese-text">${esc(japanese)}</div>
             `;
 
             speakBtn.disabled = false;
             translateBtn.disabled = false;
         }
 
-        // Reset result display
-        function resetResult() {
-            resultArea.innerHTML = '<span class="placeholder-text">カメラで じしょを うつしてね</span>';
-            speakBtn.disabled = true;
-            translateBtn.disabled = true;
-            currentText = '';
-            japaneseText = '';
-        }
-
-        // Show error in result area
-        function showError(message) {
-            resultArea.innerHTML = `<span class="placeholder-text">${message}</span>`;
+        function showError(msg) {
+            resultArea.innerHTML = `<span class="placeholder-text">${msg}</span>`;
             speakBtn.disabled = true;
             translateBtn.disabled = true;
         }
 
-        // Event listeners
+        // Events
         captureBtn.addEventListener('click', async () => {
             captureBtn.disabled = true;
 
             try {
-                const canvasElement = captureImage();
-                const ocrResult = await performOCR(canvasElement);
+                const canvasEl = captureCard();
+                const ocrText = await performOCR(canvasEl);
+                const extracted = extractText(ocrText);
 
-                const extracted = extractReadableText(ocrResult);
-
-                if (!extracted || !extracted.fullText) {
+                if (!extracted) {
                     showError('もじが みつかりませんでした');
                     return;
                 }
@@ -911,20 +785,12 @@
                 progressText.textContent = 'ほんやくちゅう...';
                 progressContainer.classList.add('active');
 
-                // Translate the headword for Japanese
-                const japanese = extracted.headword
-                    ? await getJapaneseTranslation(extracted.headword)
-                    : '';
-
+                const japanese = await getTranslation(extracted.headword);
                 progressContainer.classList.remove('active');
 
-                updateResult(
-                    extracted.headword || 'unknown',
-                    extracted.fullText,
-                    japanese
-                );
+                updateResult(extracted.headword || '', extracted.fullText, japanese);
             } catch (err) {
-                console.error('OCR error:', err);
+                console.error('Error:', err);
                 showError('エラーが おきました');
                 progressContainer.classList.remove('active');
             } finally {
@@ -932,19 +798,10 @@
             }
         });
 
-        speakBtn.addEventListener('click', () => {
-            if (currentText) {
-                speakEnglish(currentText);
-            }
-        });
+        speakBtn.addEventListener('click', () => speakEnglish(currentText));
+        translateBtn.addEventListener('click', () => speakJapanese(japaneseText));
 
-        translateBtn.addEventListener('click', () => {
-            if (japaneseText) {
-                speakJapanese(japaneseText);
-            }
-        });
-
-        // Initialize
+        // Init
         async function init() {
             await initCamera();
             await initTesseract();
