@@ -690,33 +690,28 @@
             }
         }
 
-        // Extract the main word from OCR text
+        // Extract the main word from OCR text - prioritize first bold/large word
         function extractMainWord(ocrText) {
-            // Clean up and extract words
-            const cleaned = ocrText.toLowerCase()
-                .replace(/[^a-z\s]/g, ' ')
-                .trim();
+            // Split by newlines first to get the first line (usually the headword)
+            const lines = ocrText.split('\n').filter(l => l.trim().length > 0);
 
-            const words = cleaned.split(/\s+/).filter(w => w.length > 1);
+            if (lines.length === 0) return null;
 
-            if (words.length === 0) return null;
+            // First line usually contains the main word
+            const firstLine = lines[0].toLowerCase().trim();
 
-            // Priority: find dictionary word first
-            for (const word of words) {
-                if (childrensDictionary[word]) {
-                    return word;
-                }
+            // Extract just alphabetic words
+            const words = firstLine.replace(/[^a-z\s]/g, ' ').trim().split(/\s+/).filter(w => w.length > 1);
+
+            if (words.length === 0) {
+                // Try all lines if first line has no words
+                const allText = ocrText.toLowerCase().replace(/[^a-z\s]/g, ' ').trim();
+                const allWords = allText.split(/\s+/).filter(w => w.length > 1);
+                return allWords.length > 0 ? allWords[0] : null;
             }
 
-            // Check for compound words in dictionary
-            for (const dictWord of Object.keys(childrensDictionary)) {
-                if (cleaned.includes(dictWord)) {
-                    return dictWord;
-                }
-            }
-
-            // Return first reasonable word (2+ letters)
-            return words.find(w => w.length >= 2) || words[0];
+            // Return the first word from OCR result
+            return words[0];
         }
 
         // Get Japanese translation
@@ -744,24 +739,69 @@
             return '（ほんやく できませんでした）';
         }
 
+        // Speech synthesis with iOS Safari support
+        let voicesLoaded = false;
+        let englishVoice = null;
+        let japaneseVoice = null;
+
+        function loadVoices() {
+            const voices = speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                voicesLoaded = true;
+                // Find English voice
+                englishVoice = voices.find(v => v.lang.startsWith('en')) || null;
+                // Find Japanese voice
+                japaneseVoice = voices.find(v => v.lang.startsWith('ja')) || null;
+                console.log('Voices loaded:', voices.length, 'EN:', englishVoice?.name, 'JA:', japaneseVoice?.name);
+            }
+        }
+
+        // Load voices on init and when they change
+        loadVoices();
+        speechSynthesis.onvoiceschanged = loadVoices;
+
         // Text to speech - English
         function speakEnglish(text) {
+            if (!text) return;
+
+            // Cancel any ongoing speech
             speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'en-US';
-            utterance.rate = 0.6; // Slower for children
-            utterance.pitch = 1.1;
-            speechSynthesis.speak(utterance);
+
+            // Small delay for iOS
+            setTimeout(() => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                if (englishVoice) utterance.voice = englishVoice;
+                utterance.rate = 0.6; // Slower for children
+                utterance.pitch = 1.1;
+                utterance.volume = 1.0;
+
+                utterance.onerror = (e) => console.error('Speech error:', e);
+
+                speechSynthesis.speak(utterance);
+            }, 100);
         }
 
         // Text to speech - Japanese
         function speakJapanese(text) {
+            if (!text) return;
+
+            // Cancel any ongoing speech
             speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ja-JP';
-            utterance.rate = 0.8;
-            utterance.pitch = 1.1;
-            speechSynthesis.speak(utterance);
+
+            // Small delay for iOS
+            setTimeout(() => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ja-JP';
+                if (japaneseVoice) utterance.voice = japaneseVoice;
+                utterance.rate = 0.8;
+                utterance.pitch = 1.1;
+                utterance.volume = 1.0;
+
+                utterance.onerror = (e) => console.error('Speech error:', e);
+
+                speechSynthesis.speak(utterance);
+            }, 100);
         }
 
         // Update result display
@@ -821,9 +861,6 @@
                 progressContainer.classList.remove('active');
 
                 updateResult(mainWord, japanese);
-
-                // Auto-speak English
-                speakEnglish(mainWord);
             } catch (err) {
                 console.error('OCR error:', err);
                 showError('エラーが おきました');
