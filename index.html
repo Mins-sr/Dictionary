@@ -46,7 +46,6 @@
             display: none;
         }
 
-        /* Square focus overlay with corner brackets */
         .focus-overlay {
             position: absolute;
             pointer-events: none;
@@ -63,40 +62,117 @@
             border-width: 0;
         }
 
-        .corner-tl {
+        .corner-tl { top: 0; left: 0; border-top-width: 5px; border-left-width: 5px; }
+        .corner-tr { top: 0; right: 0; border-top-width: 5px; border-right-width: 5px; }
+        .corner-bl { bottom: 0; left: 0; border-bottom-width: 5px; border-left-width: 5px; }
+        .corner-br { bottom: 0; right: 0; border-bottom-width: 5px; border-right-width: 5px; }
+
+        .focus-overlay.tracking .corner { border-color: #4caf50; }
+        .focus-overlay.not-tracking .corner { border-color: #ffeb3b; }
+
+        /* Settings button */
+        .settings-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 15;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Settings modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
             top: 0;
             left: 0;
-            border-top-width: 5px;
-            border-left-width: 5px;
-        }
-
-        .corner-tr {
-            top: 0;
             right: 0;
-            border-top-width: 5px;
-            border-right-width: 5px;
-        }
-
-        .corner-bl {
             bottom: 0;
-            left: 0;
-            border-bottom-width: 5px;
-            border-left-width: 5px;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
         }
 
-        .corner-br {
-            bottom: 0;
-            right: 0;
-            border-bottom-width: 5px;
-            border-right-width: 5px;
+        .modal-overlay.active {
+            display: flex;
         }
 
-        .focus-overlay.tracking .corner {
-            border-color: #4caf50;
+        .modal {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
         }
 
-        .focus-overlay.not-tracking .corner {
-            border-color: #ffeb3b;
+        .modal h2 {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .modal label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .modal-buttons .save-btn {
+            background: #4caf50;
+            color: white;
+        }
+
+        .modal-buttons .cancel-btn {
+            background: #ddd;
+        }
+
+        .api-status {
+            font-size: 12px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .api-status.active {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .api-status.inactive {
+            background: #fff3e0;
+            color: #ef6c00;
         }
 
         /* Controls */
@@ -132,32 +208,23 @@
             gap: 10px;
         }
 
-        .btn:active {
-            transform: scale(0.95);
-        }
-
+        .btn:active { transform: scale(0.95); }
         .btn-capture {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
             box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
         }
-
         .btn-speak {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
             box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
         }
-
         .btn-translate {
             background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
             color: white;
             box-shadow: 0 4px 15px rgba(67, 233, 123, 0.4);
         }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .result-area {
             background: white;
@@ -173,30 +240,10 @@
             justify-content: center;
         }
 
-        .english-text {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 3px;
-        }
-
-        .japanese-text {
-            font-size: 18px;
-            color: #666;
-        }
-
-        .definition-text {
-            font-size: 14px;
-            color: #444;
-            margin: 5px 0;
-            line-height: 1.3;
-            text-align: center;
-        }
-
-        .placeholder-text {
-            color: #aaa;
-            font-size: 16px;
-        }
+        .english-text { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 3px; }
+        .japanese-text { font-size: 18px; color: #666; }
+        .definition-text { font-size: 14px; color: #444; margin: 5px 0; line-height: 1.3; text-align: center; }
+        .placeholder-text { color: #aaa; font-size: 16px; }
 
         .progress-container {
             position: absolute;
@@ -210,32 +257,10 @@
             text-align: center;
             display: none;
         }
-
-        .progress-container.active {
-            display: block;
-        }
-
-        .progress-text {
-            color: white;
-            font-size: 18px;
-            margin-bottom: 15px;
-        }
-
-        .progress-bar {
-            width: 200px;
-            height: 10px;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4facfe, #00f2fe);
-            border-radius: 5px;
-            transition: width 0.3s ease;
-            width: 0%;
-        }
+        .progress-container.active { display: block; }
+        .progress-text { color: white; font-size: 18px; margin-bottom: 15px; }
+        .progress-bar { width: 200px; height: 10px; background: rgba(255,255,255,0.3); border-radius: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #4facfe, #00f2fe); border-radius: 5px; transition: width 0.3s ease; width: 0%; }
 
         .error-message {
             position: absolute;
@@ -248,16 +273,8 @@
             text-align: center;
             max-width: 80%;
         }
-
-        .error-message h2 {
-            color: #f44336;
-            margin-bottom: 15px;
-        }
-
-        .error-message p {
-            color: #666;
-            line-height: 1.6;
-        }
+        .error-message h2 { color: #f44336; margin-bottom: 15px; }
+        .error-message p { color: #666; line-height: 1.6; }
     </style>
 </head>
 <body>
@@ -266,6 +283,8 @@
             <video id="video" autoplay playsinline></video>
             <canvas id="canvas"></canvas>
             <canvas id="detectCanvas"></canvas>
+
+            <button class="settings-btn" id="settingsBtn">⚙️</button>
 
             <div class="focus-overlay not-tracking" id="focusOverlay">
                 <div class="corner corner-tl"></div>
@@ -309,6 +328,23 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2>⚙️ せってい</h2>
+            <div class="api-status inactive" id="apiStatus">Cloud Vision: みせってい</div>
+            <label for="apiKeyInput">Google Cloud Vision API Key</label>
+            <input type="password" id="apiKeyInput" placeholder="APIキーを にゅうりょく">
+            <p style="font-size: 12px; color: #888; margin-bottom: 15px;">
+                APIキーがない場合は Tesseract.js を使用します
+            </p>
+            <div class="modal-buttons">
+                <button class="cancel-btn" id="cancelBtn">キャンセル</button>
+                <button class="save-btn" id="saveBtn">ほぞん</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // State
         let currentText = '';
@@ -317,6 +353,7 @@
         let tesseractWorker = null;
         let detectionRunning = false;
         let currentCardRect = null;
+        let apiKey = localStorage.getItem('gcv_api_key') || '';
 
         // Dictionary
         const childrensDictionary = {
@@ -365,7 +402,8 @@
             'classroom': 'きょうしつ', 'child': 'こども', 'children': 'こどもたち',
             'city': 'まち', 'chin': 'あご', 'cherry': 'さくらんぼ', 'chef': 'シェフ',
             'chicken': 'にわとり', 'unhappy': 'かなしい', 'under': 'した',
-            'understand': 'わかる', 'upright': 'まっすぐ', 'upset': 'かなしい'
+            'understand': 'わかる', 'upright': 'まっすぐ', 'upset': 'かなしい',
+            'bright': 'あかるい', 'more': 'もっと', 'month': 'つき'
         };
 
         // Elements
@@ -384,9 +422,58 @@
         const captureBtn = document.getElementById('captureBtn');
         const speakBtn = document.getElementById('speakBtn');
         const translateBtn = document.getElementById('translateBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const apiStatus = document.getElementById('apiStatus');
+        const saveBtn = document.getElementById('saveBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
 
-        // Initialize Tesseract
+        // Settings modal
+        function updateApiStatus() {
+            if (apiKey) {
+                apiStatus.textContent = 'Cloud Vision: せっていずみ ✓';
+                apiStatus.className = 'api-status active';
+            } else {
+                apiStatus.textContent = 'Cloud Vision: みせってい (Tesseract使用)';
+                apiStatus.className = 'api-status inactive';
+            }
+        }
+
+        settingsBtn.addEventListener('click', () => {
+            apiKeyInput.value = apiKey;
+            updateApiStatus();
+            modalOverlay.classList.add('active');
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            modalOverlay.classList.remove('active');
+        });
+
+        saveBtn.addEventListener('click', () => {
+            apiKey = apiKeyInput.value.trim();
+            if (apiKey) {
+                localStorage.setItem('gcv_api_key', apiKey);
+            } else {
+                localStorage.removeItem('gcv_api_key');
+            }
+            updateApiStatus();
+            modalOverlay.classList.remove('active');
+        });
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.classList.remove('active');
+            }
+        });
+
+        // Initialize Tesseract (fallback)
         async function initTesseract() {
+            if (apiKey) {
+                // Skip Tesseract init if using Cloud Vision
+                return;
+            }
+
             progressContainer.classList.add('active');
             progressText.textContent = 'じゅんびちゅう...';
             progressFill.style.width = '10%';
@@ -437,19 +524,17 @@
             }
         }
 
-        // Detect card-like rectangles in the video
+        // Detect card-like rectangles
         function detectCards() {
             if (!video.videoWidth) return [];
 
             const w = detectCanvas.width;
             const h = detectCanvas.height;
 
-            // Draw scaled down video frame
             detectCtx.drawImage(video, 0, 0, w, h);
             const imageData = detectCtx.getImageData(0, 0, w, h);
             const data = imageData.data;
 
-            // Convert to grayscale and detect edges
             const gray = new Uint8Array(w * h);
             const edges = new Uint8Array(w * h);
 
@@ -457,7 +542,6 @@
                 gray[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
             }
 
-            // Simple edge detection (Sobel-like)
             for (let y = 1; y < h - 1; y++) {
                 for (let x = 1; x < w - 1; x++) {
                     const idx = y * w + x;
@@ -467,46 +551,32 @@
                 }
             }
 
-            // Find rectangular regions by scanning for edge patterns
             const cards = [];
             const minSize = Math.min(w, h) * 0.15;
             const maxSize = Math.min(w, h) * 0.8;
-
-            // Scan for potential card boundaries using edge density
             const gridSize = 8;
             const edgeDensity = [];
 
             for (let gy = 0; gy < h; gy += gridSize) {
                 for (let gx = 0; gx < w; gx += gridSize) {
-                    let sum = 0;
-                    let count = 0;
+                    let sum = 0, count = 0;
                     for (let dy = 0; dy < gridSize && gy + dy < h; dy++) {
                         for (let dx = 0; dx < gridSize && gx + dx < w; dx++) {
                             sum += edges[(gy + dy) * w + (gx + dx)];
                             count++;
                         }
                     }
-                    edgeDensity.push({
-                        x: gx,
-                        y: gy,
-                        density: sum / count
-                    });
+                    edgeDensity.push({ x: gx, y: gy, density: sum / count });
                 }
             }
 
-            // Find regions with high edge density (card borders)
             const threshold = 30;
             const highEdge = edgeDensity.filter(e => e.density > threshold);
 
             if (highEdge.length > 4) {
-                // Find bounding box of high edge regions near center
-                const centerX = w / 2;
-                const centerY = h / 2;
-
-                // Group nearby edge regions
+                const centerX = w / 2, centerY = h / 2;
                 const nearCenter = highEdge.filter(e => {
-                    const dx = e.x - centerX;
-                    const dy = e.y - centerY;
+                    const dx = e.x - centerX, dy = e.y - centerY;
                     return Math.sqrt(dx * dx + dy * dy) < Math.min(w, h) * 0.4;
                 });
 
@@ -519,15 +589,9 @@
                         maxY = Math.max(maxY, e.y + gridSize);
                     });
 
-                    const cardW = maxX - minX;
-                    const cardH = maxY - minY;
-
-                    // Make it square (use smaller dimension)
-                    const size = Math.min(cardW, cardH);
+                    const size = Math.min(maxX - minX, maxY - minY);
                     if (size >= minSize && size <= maxSize) {
-                        const cx = (minX + maxX) / 2;
-                        const cy = (minY + maxY) / 2;
-
+                        const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
                         cards.push({
                             x: (cx - size / 2) * 4,
                             y: (cy - size / 2) * 4,
@@ -538,7 +602,6 @@
                 }
             }
 
-            // If no card detected, use center square
             if (cards.length === 0) {
                 const size = Math.min(video.videoWidth, video.videoHeight) * 0.4;
                 cards.push({
@@ -552,33 +615,21 @@
             return cards;
         }
 
-        // Update overlay position
         function updateOverlay(rect) {
-            const containerRect = cameraContainer.getBoundingClientRect();
             const videoRect = video.getBoundingClientRect();
-
-            // Calculate scale between video display and actual video
             const scaleX = videoRect.width / video.videoWidth;
             const scaleY = videoRect.height / video.videoHeight;
-
-            // Calculate offset (for object-fit: cover)
             const offsetX = (videoRect.width - video.videoWidth * scaleX) / 2;
             const offsetY = (videoRect.height - video.videoHeight * scaleY) / 2;
 
-            const displayX = rect.x * scaleX + offsetX;
-            const displayY = rect.y * scaleY + offsetY;
-            const displayW = rect.width * scaleX;
-            const displayH = rect.height * scaleY;
-
-            focusOverlay.style.left = displayX + 'px';
-            focusOverlay.style.top = displayY + 'px';
-            focusOverlay.style.width = displayW + 'px';
-            focusOverlay.style.height = displayH + 'px';
+            focusOverlay.style.left = (rect.x * scaleX + offsetX) + 'px';
+            focusOverlay.style.top = (rect.y * scaleY + offsetY) + 'px';
+            focusOverlay.style.width = (rect.width * scaleX) + 'px';
+            focusOverlay.style.height = (rect.height * scaleY) + 'px';
 
             currentCardRect = rect;
         }
 
-        // Start card detection loop
         function startCardDetection() {
             detectionRunning = true;
 
@@ -587,21 +638,13 @@
 
                 const cards = detectCards();
                 if (cards.length > 0) {
-                    // Find card closest to center
-                    const centerX = video.videoWidth / 2;
-                    const centerY = video.videoHeight / 2;
-
-                    let closest = cards[0];
-                    let minDist = Infinity;
+                    const centerX = video.videoWidth / 2, centerY = video.videoHeight / 2;
+                    let closest = cards[0], minDist = Infinity;
 
                     cards.forEach(card => {
-                        const cx = card.x + card.width / 2;
-                        const cy = card.y + card.height / 2;
+                        const cx = card.x + card.width / 2, cy = card.y + card.height / 2;
                         const dist = Math.sqrt((cx - centerX) ** 2 + (cy - centerY) ** 2);
-                        if (dist < minDist) {
-                            minDist = dist;
-                            closest = card;
-                        }
+                        if (dist < minDist) { minDist = dist; closest = card; }
                     });
 
                     updateOverlay(closest);
@@ -618,10 +661,9 @@
             detect();
         }
 
-        // Capture the detected card region
-        function captureCard() {
+        // Capture card (no preprocessing for Cloud Vision)
+        function captureCard(forCloudVision = false) {
             if (!currentCardRect) {
-                // Fallback to center
                 const size = Math.min(video.videoWidth, video.videoHeight) * 0.4;
                 currentCardRect = {
                     x: (video.videoWidth - size) / 2,
@@ -632,65 +674,123 @@
             }
 
             const { x, y, width, height } = currentCardRect;
-
             canvas.width = width;
             canvas.height = height;
-
             ctx.drawImage(video, x, y, width, height, 0, 0, width, height);
 
-            // Preprocessing
-            const imageData = ctx.getImageData(0, 0, width, height);
-            const data = imageData.data;
+            if (!forCloudVision) {
+                // Preprocessing for Tesseract
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
 
-            for (let i = 0; i < data.length; i += 4) {
-                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                const contrast = 1.4;
-                const factor = (259 * (contrast * 100 + 255)) / (255 * (259 - contrast * 100));
-                const newGray = Math.max(0, Math.min(255, factor * (gray - 128) + 128));
-                const threshold = 145;
-                const finalValue = newGray > threshold ? 255 : 0;
-                data[i] = data[i + 1] = data[i + 2] = finalValue;
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                    const contrast = 1.4;
+                    const factor = (259 * (contrast * 100 + 255)) / (255 * (259 - contrast * 100));
+                    const newGray = Math.max(0, Math.min(255, factor * (gray - 128) + 128));
+                    const threshold = 145;
+                    const finalValue = newGray > threshold ? 255 : 0;
+                    data[i] = data[i + 1] = data[i + 2] = finalValue;
+                }
+
+                ctx.putImageData(imageData, 0, 0);
             }
 
-            ctx.putImageData(imageData, 0, 0);
             return canvas;
         }
 
-        // OCR
-        async function performOCR(canvasElement) {
-            if (!tesseractWorker) throw new Error('Tesseract not initialized');
+        // Google Cloud Vision API OCR
+        async function performCloudVisionOCR(canvasElement) {
+            const base64 = canvasElement.toDataURL('image/jpeg', 0.9).split(',')[1];
 
+            const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    requests: [{
+                        image: { content: base64 },
+                        features: [{ type: 'TEXT_DETECTION', maxResults: 1 }]
+                    }]
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+
+            const textAnnotations = data.responses?.[0]?.textAnnotations;
+            if (textAnnotations && textAnnotations.length > 0) {
+                return textAnnotations[0].description;
+            }
+
+            return '';
+        }
+
+        // Tesseract OCR (fallback)
+        async function performTesseractOCR(canvasElement) {
+            if (!tesseractWorker) {
+                await initTesseract();
+            }
+            const result = await tesseractWorker.recognize(canvasElement);
+            return result.data.text.trim();
+        }
+
+        // Main OCR function
+        async function performOCR() {
             progressContainer.classList.add('active');
             progressText.textContent = 'よみとりちゅう...';
-            progressFill.style.width = '0%';
+            progressFill.style.width = '30%';
 
             try {
-                const result = await tesseractWorker.recognize(canvasElement);
-                console.log('OCR:', result.data.text);
-                return result.data.text.trim();
+                let ocrText = '';
+
+                if (apiKey) {
+                    // Use Cloud Vision
+                    const canvasEl = captureCard(true);
+                    progressFill.style.width = '50%';
+                    ocrText = await performCloudVisionOCR(canvasEl);
+                    console.log('Cloud Vision OCR:', ocrText);
+                } else {
+                    // Use Tesseract
+                    const canvasEl = captureCard(false);
+                    progressFill.style.width = '50%';
+                    ocrText = await performTesseractOCR(canvasEl);
+                    console.log('Tesseract OCR:', ocrText);
+                }
+
+                progressFill.style.width = '100%';
+                return ocrText;
             } finally {
                 progressContainer.classList.remove('active');
                 progressFill.style.width = '0%';
             }
         }
 
-        // Extract text
+        // Extract headword and definition from OCR text
         function extractText(ocrText) {
             if (!ocrText) return null;
 
-            const cleaned = ocrText
-                .replace(/[^\w\s.,!?'"-]/g, ' ')
+            // Split into lines
+            const lines = ocrText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            if (lines.length === 0) return null;
+
+            // First line typically contains the headword
+            const firstLine = lines[0];
+
+            // Extract headword (first word, possibly with parentheses like "child (children)")
+            const headwordMatch = firstLine.match(/^([a-zA-Z]+)/);
+            const headword = headwordMatch ? headwordMatch[1].toLowerCase() : null;
+
+            // Full text is all lines joined
+            const fullText = lines.join(' ')
                 .replace(/\s+/g, ' ')
                 .trim();
 
-            if (!cleaned) return null;
-
-            const words = cleaned.split(/\s+/);
-            const headword = words.find(w => /^[a-zA-Z]{2,}$/.test(w));
-
             return {
-                headword: headword ? headword.toLowerCase() : words[0]?.toLowerCase(),
-                fullText: cleaned
+                headword: headword,
+                fullText: fullText
             };
         }
 
@@ -773,11 +873,10 @@
             captureBtn.disabled = true;
 
             try {
-                const canvasEl = captureCard();
-                const ocrText = await performOCR(canvasEl);
+                const ocrText = await performOCR();
                 const extracted = extractText(ocrText);
 
-                if (!extracted) {
+                if (!extracted || !extracted.headword) {
                     showError('もじが みつかりませんでした');
                     return;
                 }
@@ -788,7 +887,7 @@
                 const japanese = await getTranslation(extracted.headword);
                 progressContainer.classList.remove('active');
 
-                updateResult(extracted.headword || '', extracted.fullText, japanese);
+                updateResult(extracted.headword, extracted.fullText, japanese);
             } catch (err) {
                 console.error('Error:', err);
                 showError('エラーが おきました');
@@ -803,8 +902,11 @@
 
         // Init
         async function init() {
+            updateApiStatus();
             await initCamera();
-            await initTesseract();
+            if (!apiKey) {
+                await initTesseract();
+            }
         }
 
         init();
