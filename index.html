@@ -644,7 +644,7 @@
             }
         }
 
-        // Capture image from camera (center region only)
+        // Capture image from camera (center region only) with preprocessing
         function captureImage() {
             const videoWidth = video.videoWidth;
             const videoHeight = video.videoHeight;
@@ -666,10 +666,34 @@
                 0, 0, regionWidth, regionHeight
             );
 
+            // Image preprocessing for better OCR
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                // Convert to grayscale
+                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+
+                // Increase contrast
+                const contrast = 1.5;
+                const factor = (259 * (contrast * 100 + 255)) / (255 * (259 - contrast * 100));
+                const newGray = Math.max(0, Math.min(255, factor * (gray - 128) + 128));
+
+                // Apply threshold for binarization (helps with printed text)
+                const threshold = 140;
+                const finalValue = newGray > threshold ? 255 : 0;
+
+                data[i] = finalValue;     // R
+                data[i + 1] = finalValue; // G
+                data[i + 2] = finalValue; // B
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+
             return canvas;
         }
 
-        // Perform OCR with Tesseract.js
+        // Perform OCR with Tesseract.js - returns word-level data
         async function performOCR(canvasElement) {
             if (!tesseractWorker) {
                 throw new Error('Tesseract not initialized');
@@ -681,37 +705,57 @@
 
             try {
                 const result = await tesseractWorker.recognize(canvasElement);
-                const text = result.data.text.trim();
-                console.log('OCR Result:', text);
-                return text;
+
+                // Get words with confidence scores
+                const words = result.data.words || [];
+                const confidentWords = words
+                    .filter(w => w.confidence > 60 && w.text.trim().length > 0)
+                    .map(w => ({
+                        text: w.text.trim(),
+                        confidence: w.confidence
+                    }));
+
+                console.log('OCR Words:', confidentWords);
+                console.log('OCR Full Text:', result.data.text);
+
+                return {
+                    fullText: result.data.text.trim(),
+                    words: confidentWords
+                };
             } finally {
                 progressContainer.classList.remove('active');
                 progressFill.style.width = '0%';
             }
         }
 
-        // Extract the main word from OCR text - prioritize first bold/large word
-        function extractMainWord(ocrText) {
-            // Split by newlines first to get the first line (usually the headword)
-            const lines = ocrText.split('\n').filter(l => l.trim().length > 0);
+        // Extract readable text from OCR result
+        function extractReadableText(ocrResult) {
+            const { fullText, words } = ocrResult;
 
-            if (lines.length === 0) return null;
-
-            // First line usually contains the main word
-            const firstLine = lines[0].toLowerCase().trim();
-
-            // Extract just alphabetic words
-            const words = firstLine.replace(/[^a-z\s]/g, ' ').trim().split(/\s+/).filter(w => w.length > 1);
-
-            if (words.length === 0) {
-                // Try all lines if first line has no words
-                const allText = ocrText.toLowerCase().replace(/[^a-z\s]/g, ' ').trim();
-                const allWords = allText.split(/\s+/).filter(w => w.length > 1);
-                return allWords.length > 0 ? allWords[0] : null;
+            if (!fullText || fullText.length === 0) {
+                return null;
             }
 
-            // Return the first word from OCR result
-            return words[0];
+            // Clean up the full text for display and reading
+            const cleanedText = fullText
+                .replace(/[^\w\s.,!?'"-]/g, ' ')  // Keep basic punctuation
+                .replace(/\s+/g, ' ')              // Normalize whitespace
+                .trim();
+
+            if (cleanedText.length === 0) {
+                return null;
+            }
+
+            // Extract the headword (first significant word, usually bold in dictionaries)
+            const lines = cleanedText.split(/[.\n]/).filter(l => l.trim().length > 0);
+            const firstLine = lines[0] || cleanedText;
+            const firstWords = firstLine.trim().split(/\s+/);
+            const headword = firstWords.find(w => /^[a-zA-Z]{2,}$/.test(w)) || firstWords[0];
+
+            return {
+                headword: headword ? headword.toLowerCase() : null,
+                fullText: cleanedText
+            };
         }
 
         // Get Japanese translation
@@ -804,14 +848,21 @@
             }, 100);
         }
 
-        // Update result display
-        function updateResult(english, japanese) {
-            currentText = english;
+        // Update result display - shows full text for reading
+        function updateResult(headword, fullText, japanese) {
+            currentText = fullText;  // Full text for English speech
             japaneseText = japanese;
 
+            // Escape HTML
+            const escapeHtml = (str) => str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
             resultArea.innerHTML = `
-                <div class="english-text">${english}</div>
-                <div class="japanese-text">${japanese}</div>
+                <div class="english-text">${escapeHtml(headword)}</div>
+                <div class="definition-text" style="font-size: 16px; color: #444; margin: 8px 0; line-height: 1.4; text-align: left; max-height: 80px; overflow-y: auto;">${escapeHtml(fullText)}</div>
+                <div class="japanese-text">${escapeHtml(japanese)}</div>
             `;
 
             speakBtn.disabled = false;
@@ -840,27 +891,30 @@
 
             try {
                 const canvasElement = captureImage();
-                const ocrText = await performOCR(canvasElement);
+                const ocrResult = await performOCR(canvasElement);
 
-                if (!ocrText || ocrText.length === 0) {
+                const extracted = extractReadableText(ocrResult);
+
+                if (!extracted || !extracted.fullText) {
                     showError('もじが みつかりませんでした');
-                    return;
-                }
-
-                const mainWord = extractMainWord(ocrText);
-                if (!mainWord) {
-                    showError('ことばが みつかりませんでした');
                     return;
                 }
 
                 progressText.textContent = 'ほんやくちゅう...';
                 progressContainer.classList.add('active');
 
-                const japanese = await getJapaneseTranslation(mainWord);
+                // Translate the headword for Japanese
+                const japanese = extracted.headword
+                    ? await getJapaneseTranslation(extracted.headword)
+                    : '';
 
                 progressContainer.classList.remove('active');
 
-                updateResult(mainWord, japanese);
+                updateResult(
+                    extracted.headword || 'unknown',
+                    extracted.fullText,
+                    japanese
+                );
             } catch (err) {
                 console.error('OCR error:', err);
                 showError('エラーが おきました');
