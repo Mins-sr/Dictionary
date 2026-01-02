@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>えいご じしょ</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+            background: #f0f8ff;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 100%;
+        }
+
+        .camera-container {
+            position: relative;
+            flex: 1;
+            background: #000;
+            overflow: hidden;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        /* Focus overlay - corner brackets */
+        .focus-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 50%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .corner {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-color: #ffeb3b;
+            border-style: solid;
+            border-width: 0;
+        }
+
+        .corner-tl {
+            top: 0;
+            left: 0;
+            border-top-width: 6px;
+            border-left-width: 6px;
+            border-radius: 8px 0 0 0;
+        }
+
+        .corner-tr {
+            top: 0;
+            right: 0;
+            border-top-width: 6px;
+            border-right-width: 6px;
+            border-radius: 0 8px 0 0;
+        }
+
+        .corner-bl {
+            bottom: 0;
+            left: 0;
+            border-bottom-width: 6px;
+            border-left-width: 6px;
+            border-radius: 0 0 0 8px;
+        }
+
+        .corner-br {
+            bottom: 0;
+            right: 0;
+            border-bottom-width: 6px;
+            border-right-width: 6px;
+            border-radius: 0 0 8px 0;
+        }
+
+        /* Animated corners */
+        .focus-overlay.active .corner {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                border-color: #ffeb3b;
+                transform: scale(1);
+            }
+            50% {
+                border-color: #4caf50;
+                transform: scale(1.05);
+            }
+        }
+
+        /* Center guide text */
+        .center-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .focus-overlay.active .center-guide {
+            display: none;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            flex: 1;
+            max-width: 200px;
+            padding: 20px 15px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-capture {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .btn-speak {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-translate {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(67, 233, 123, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Result display */
+        .result-area {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 5px;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .english-text {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .japanese-text {
+            font-size: 22px;
+            color: #666;
+        }
+
+        .placeholder-text {
+            color: #aaa;
+            font-size: 16px;
+        }
+
+        /* Loading indicator */
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Permission error */
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        .error-message h2 {
+            color: #f44336;
+            margin-bottom: 15px;
+        }
+
+        .error-message p {
+            color: #666;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="camera-container">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+
+            <!-- Focus overlay with corner brackets -->
+            <div class="focus-overlay" id="focusOverlay">
+                <div class="corner corner-tl"></div>
+                <div class="corner corner-tr"></div>
+                <div class="corner corner-bl"></div>
+                <div class="corner corner-br"></div>
+                <div class="center-guide">ここに えを あわせてね</div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+            </div>
+
+            <div class="error-message" id="errorMessage" style="display: none;">
+                <h2>カメラが つかえません</h2>
+                <p>カメラの きょかを おねがいします</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="result-area" id="resultArea">
+                <span class="placeholder-text">カメラで じしょを うつしてね</span>
+            </div>
+
+            <div class="button-row">
+                <button class="btn btn-capture" id="captureBtn">
+                    <span>よみとる</span>
+                </button>
+            </div>
+
+            <div class="button-row">
+                <button class="btn btn-speak" id="speakBtn" disabled>
+                    <span>えいごで よむ</span>
+                </button>
+                <button class="btn btn-translate" id="translateBtn" disabled>
+                    <span>にほんご</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentText = '';
+        let japaneseText = '';
+        let stream = null;
+
+        // Elements
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const focusOverlay = document.getElementById('focusOverlay');
+        const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('errorMessage');
+        const resultArea = document.getElementById('resultArea');
+        const captureBtn = document.getElementById('captureBtn');
+        const speakBtn = document.getElementById('speakBtn');
+        const translateBtn = document.getElementById('translateBtn');
+
+        // Initialize camera
+        async function initCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+                video.srcObject = stream;
+                await video.play();
+
+                // Set canvas size to match video
+                video.addEventListener('loadedmetadata', () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                });
+
+                focusOverlay.classList.add('active');
+            } catch (err) {
+                console.error('Camera error:', err);
+                errorMessage.style.display = 'block';
+                focusOverlay.style.display = 'none';
+            }
+        }
+
+        // Capture image from camera (center region only)
+        function captureImage() {
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+
+            // Calculate center region (70% width, 50% height - matching overlay)
+            const regionWidth = videoWidth * 0.7;
+            const regionHeight = videoHeight * 0.5;
+            const startX = (videoWidth - regionWidth) / 2;
+            const startY = (videoHeight - regionHeight) / 2;
+
+            // Set canvas to region size
+            canvas.width = regionWidth;
+            canvas.height = regionHeight;
+
+            // Draw only the center region
+            ctx.drawImage(
+                video,
+                startX, startY, regionWidth, regionHeight,
+                0, 0, regionWidth, regionHeight
+            );
+
+            return canvas.toDataURL('image/jpeg', 0.9);
+        }
+
+        // Simulate OCR (in real app, would use Tesseract.js or API)
+        async function performOCR(imageData) {
+            // For demo purposes, return sample text
+            // In production, integrate with Tesseract.js or cloud OCR API
+
+            // Simulate processing delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Demo responses - in real app, this would be actual OCR
+            const sampleWords = [
+                { english: 'beetroot', japanese: 'ビーツ（まるくて あかい やさい）' },
+                { english: 'actor', japanese: 'はいゆう（げきを する ひと）' },
+                { english: 'add', japanese: 'たす（かずを あわせる）' },
+                { english: 'address', japanese: 'じゅうしょ（すんでいる ばしょ）' },
+                { english: 'afraid', japanese: 'こわい（びくびく する）' },
+                { english: 'apple', japanese: 'りんご' },
+                { english: 'book', japanese: 'ほん' },
+                { english: 'cat', japanese: 'ねこ' }
+            ];
+
+            const randomWord = sampleWords[Math.floor(Math.random() * sampleWords.length)];
+            return randomWord;
+        }
+
+        // Text to speech - English
+        function speakEnglish(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.7; // Slower for children
+            utterance.pitch = 1.1;
+            speechSynthesis.speak(utterance);
+        }
+
+        // Text to speech - Japanese
+        function speakJapanese(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 0.8;
+            utterance.pitch = 1.1;
+            speechSynthesis.speak(utterance);
+        }
+
+        // Update result display
+        function updateResult(english, japanese) {
+            currentText = english;
+            japaneseText = japanese;
+
+            resultArea.innerHTML = `
+                <div class="english-text">${english}</div>
+                <div class="japanese-text">${japanese}</div>
+            `;
+
+            speakBtn.disabled = false;
+            translateBtn.disabled = false;
+        }
+
+        // Reset result display
+        function resetResult() {
+            resultArea.innerHTML = '<span class="placeholder-text">カメラで じしょを うつしてね</span>';
+            speakBtn.disabled = true;
+            translateBtn.disabled = true;
+            currentText = '';
+            japaneseText = '';
+        }
+
+        // Event listeners
+        captureBtn.addEventListener('click', async () => {
+            loading.classList.add('active');
+            captureBtn.disabled = true;
+
+            try {
+                const imageData = captureImage();
+                const result = await performOCR(imageData);
+                updateResult(result.english, result.japanese);
+
+                // Auto-speak English
+                speakEnglish(result.english);
+            } catch (err) {
+                console.error('OCR error:', err);
+                resetResult();
+            } finally {
+                loading.classList.remove('active');
+                captureBtn.disabled = false;
+            }
+        });
+
+        speakBtn.addEventListener('click', () => {
+            if (currentText) {
+                speakEnglish(currentText);
+            }
+        });
+
+        translateBtn.addEventListener('click', () => {
+            if (japaneseText) {
+                speakJapanese(japaneseText);
+            }
+        });
+
+        // Initialize
+        initCamera();
+    </script>
+</body>
+</html>
