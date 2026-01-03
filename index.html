@@ -709,7 +709,7 @@
                 body: JSON.stringify({
                     requests: [{
                         image: { content: base64 },
-                        features: [{ type: 'TEXT_DETECTION', maxResults: 1 }]
+                        features: [{ type: 'TEXT_DETECTION' }]
                     }]
                 })
             });
@@ -721,11 +721,38 @@
             }
 
             const textAnnotations = data.responses?.[0]?.textAnnotations;
-            if (textAnnotations && textAnnotations.length > 0) {
-                return textAnnotations[0].description;
+            if (!textAnnotations || textAnnotations.length === 0) {
+                return { fullText: '', headword: null };
             }
 
-            return '';
+            // First annotation is full text
+            const fullText = textAnnotations[0].description || '';
+
+            // Find the topmost word (headword) using bounding box positions
+            // Skip first annotation (full text), use individual words
+            const words = textAnnotations.slice(1);
+            let headword = null;
+            let minY = Infinity;
+
+            for (const word of words) {
+                const text = word.description;
+                // Only consider words with 2+ letters
+                if (!/^[a-zA-Z]{2,}$/.test(text)) continue;
+
+                const vertices = word.boundingPoly?.vertices;
+                if (vertices && vertices.length > 0) {
+                    const topY = Math.min(...vertices.map(v => v.y || 0));
+                    if (topY < minY) {
+                        minY = topY;
+                        headword = text.toLowerCase();
+                    }
+                }
+            }
+
+            console.log('Cloud Vision - Full:', fullText);
+            console.log('Cloud Vision - Headword:', headword);
+
+            return { fullText, headword };
         }
 
         // Tesseract OCR (fallback)
@@ -744,37 +771,35 @@
             progressFill.style.width = '30%';
 
             try {
-                let ocrText = '';
-
                 if (apiKey) {
                     // Use Cloud Vision
                     const canvasEl = captureCard(true);
                     progressFill.style.width = '50%';
-                    ocrText = await performCloudVisionOCR(canvasEl);
-                    console.log('Cloud Vision OCR:', ocrText);
+                    const result = await performCloudVisionOCR(canvasEl);
+                    progressFill.style.width = '100%';
+                    return result; // { fullText, headword }
                 } else {
                     // Use Tesseract
                     const canvasEl = captureCard(false);
                     progressFill.style.width = '50%';
-                    ocrText = await performTesseractOCR(canvasEl);
+                    const ocrText = await performTesseractOCR(canvasEl);
                     console.log('Tesseract OCR:', ocrText);
+                    progressFill.style.width = '100%';
+                    return extractTextFromTesseract(ocrText);
                 }
-
-                progressFill.style.width = '100%';
-                return ocrText;
             } finally {
                 progressContainer.classList.remove('active');
                 progressFill.style.width = '0%';
             }
         }
 
-        // Extract headword and definition from OCR text
-        function extractText(ocrText) {
-            if (!ocrText) return null;
+        // Extract headword and definition from Tesseract OCR text
+        function extractTextFromTesseract(ocrText) {
+            if (!ocrText) return { fullText: '', headword: null };
 
             // Split into lines
             const lines = ocrText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            if (lines.length === 0) return null;
+            if (lines.length === 0) return { fullText: '', headword: null };
 
             // First line typically contains the headword
             const firstLine = lines[0];
@@ -873,10 +898,9 @@
             captureBtn.disabled = true;
 
             try {
-                const ocrText = await performOCR();
-                const extracted = extractText(ocrText);
+                const result = await performOCR();
 
-                if (!extracted || !extracted.headword) {
+                if (!result || !result.headword) {
                     showError('もじが みつかりませんでした');
                     return;
                 }
@@ -884,10 +908,10 @@
                 progressText.textContent = 'ほんやくちゅう...';
                 progressContainer.classList.add('active');
 
-                const japanese = await getTranslation(extracted.headword);
+                const japanese = await getTranslation(result.headword);
                 progressContainer.classList.remove('active');
 
-                updateResult(extracted.headword, extracted.fullText, japanese);
+                updateResult(result.headword, result.fullText, japanese);
             } catch (err) {
                 console.error('Error:', err);
                 showError('エラーが おきました');
