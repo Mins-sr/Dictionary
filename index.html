@@ -347,15 +347,17 @@
 
     <script>
         // State
+        let currentHeadword = '';
         let currentText = '';
         let japaneseText = '';
+        let japaneseExplanation = '';
         let stream = null;
         let tesseractWorker = null;
         let detectionRunning = false;
         let currentCardRect = null;
         let apiKey = localStorage.getItem('gcv_api_key') || '';
 
-        // Dictionary
+        // Dictionary - Japanese word translations
         const childrensDictionary = {
             'ant': 'あり', 'bear': 'くま', 'bee': 'はち', 'bird': 'とり',
             'butterfly': 'ちょうちょ', 'cat': 'ねこ', 'cow': 'うし', 'dog': 'いぬ',
@@ -405,6 +407,7 @@
             'understand': 'わかる', 'upright': 'まっすぐ', 'upset': 'かなしい',
             'bright': 'あかるい', 'more': 'もっと', 'month': 'つき'
         };
+
 
         // Elements
         const video = document.getElementById('video');
@@ -835,6 +838,43 @@
             return '';
         }
 
+        // Extract definition from OCR text (remove headword from beginning)
+        function extractDefinition(headword, fullText) {
+            if (!fullText || !headword) return '';
+
+            // Remove the headword from the beginning of fullText
+            let definition = fullText;
+            const lowerFull = fullText.toLowerCase();
+            const lowerHead = headword.toLowerCase();
+
+            // Find and remove the headword
+            const headIndex = lowerFull.indexOf(lowerHead);
+            if (headIndex !== -1) {
+                definition = fullText.substring(headIndex + headword.length).trim();
+            }
+
+            // Clean up: remove leading punctuation, parentheses content at start
+            definition = definition.replace(/^[\s,.:;]+/, '').trim();
+
+            return definition;
+        }
+
+        // Translate definition to Japanese
+        async function translateDefinition(definition) {
+            if (!definition) return '';
+
+            try {
+                const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(definition)}&langpair=en|ja`);
+                const data = await res.json();
+                if (data.responseStatus === 200) {
+                    return data.responseData.translatedText;
+                }
+            } catch (e) {
+                console.error('Definition translation error:', e);
+            }
+            return '';
+        }
+
         // Speech
         let englishVoice = null, japaneseVoice = null;
 
@@ -853,7 +893,7 @@
                 const u = new SpeechSynthesisUtterance(text);
                 u.lang = 'en-US';
                 if (englishVoice) u.voice = englishVoice;
-                u.rate = 0.6;
+                u.rate = 0.4; // Slower for children
                 speechSynthesis.speak(u);
             }, 100);
         }
@@ -871,9 +911,11 @@
         }
 
         // UI
-        function updateResult(headword, fullText, japanese) {
+        function updateResult(headword, fullText, japanese, explanation) {
+            currentHeadword = headword;
             currentText = fullText;
             japaneseText = japanese;
+            japaneseExplanation = explanation || '';
 
             const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -908,10 +950,19 @@
                 progressText.textContent = 'ほんやくちゅう...';
                 progressContainer.classList.add('active');
 
+                // Get Japanese word translation
                 const japanese = await getTranslation(result.headword);
+
+                // Extract definition and translate to Japanese
+                const definition = extractDefinition(result.headword, result.fullText);
+                const japaneseDefinition = await translateDefinition(definition);
+
                 progressContainer.classList.remove('active');
 
-                updateResult(result.headword, result.fullText, japanese);
+                updateResult(result.headword, result.fullText, japanese, japaneseDefinition);
+
+                // Auto-speak the headword after capture
+                speakEnglish(result.headword);
             } catch (err) {
                 console.error('Error:', err);
                 showError('エラーが おきました');
@@ -921,8 +972,14 @@
             }
         });
 
-        speakBtn.addEventListener('click', () => speakEnglish(currentText));
-        translateBtn.addEventListener('click', () => speakJapanese(japaneseText));
+        // Speak headword in English (slowly for children)
+        speakBtn.addEventListener('click', () => speakEnglish(currentHeadword));
+
+        // Speak Japanese explanation (or translation if no explanation)
+        translateBtn.addEventListener('click', () => {
+            const textToSpeak = japaneseExplanation || japaneseText;
+            speakJapanese(textToSpeak);
+        });
 
         // Init
         async function init() {
