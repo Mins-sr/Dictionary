@@ -408,29 +408,6 @@
             'bright': 'あかるい', 'more': 'もっと', 'month': 'つき'
         };
 
-        // Dictionary - Japanese explanations for children
-        const childrensDictionaryExplanations = {
-            'moon': 'よるの そらに みえる おおきくて あかるいもの',
-            'sun': 'ひるまの そらに ある あかるくて あついもの',
-            'star': 'よるの そらに キラキラ ひかっている ちいさなもの',
-            'rain': 'そらから おちてくる みず',
-            'snow': 'さむいひに そらから ふってくる しろいもの',
-            'cat': 'ニャーと なく ちいさな どうぶつ',
-            'dog': 'ワンワンと ほえる どうぶつ',
-            'bird': 'そらを とぶ どうぶつ',
-            'fish': 'みずのなかで およぐ どうぶつ',
-            'apple': 'あかくて まるい あまい くだもの',
-            'banana': 'きいろで ながい くだもの',
-            'milk': 'うしから とれる しろい のみもの',
-            'water': 'いきものに ひつような とうめいな のみもの',
-            'book': 'よんで たのしむもの',
-            'ball': 'まるい あそびどうぐ',
-            'car': 'ひとを のせて はしるもの',
-            'house': 'ひとが すむ ばしょ',
-            'tree': 'そとに はえている おおきな しょくぶつ',
-            'flower': 'きれいな いろの しょくぶつ',
-            'more': 'もっと たくさん'
-        };
 
         // Elements
         const video = document.getElementById('video');
@@ -861,11 +838,41 @@
             return '';
         }
 
-        // Japanese explanation for children
-        function getExplanation(word) {
-            if (!word) return '';
-            const lower = word.toLowerCase();
-            return childrensDictionaryExplanations[lower] || '';
+        // Extract definition from OCR text (remove headword from beginning)
+        function extractDefinition(headword, fullText) {
+            if (!fullText || !headword) return '';
+
+            // Remove the headword from the beginning of fullText
+            let definition = fullText;
+            const lowerFull = fullText.toLowerCase();
+            const lowerHead = headword.toLowerCase();
+
+            // Find and remove the headword
+            const headIndex = lowerFull.indexOf(lowerHead);
+            if (headIndex !== -1) {
+                definition = fullText.substring(headIndex + headword.length).trim();
+            }
+
+            // Clean up: remove leading punctuation, parentheses content at start
+            definition = definition.replace(/^[\s,.:;]+/, '').trim();
+
+            return definition;
+        }
+
+        // Translate definition to Japanese
+        async function translateDefinition(definition) {
+            if (!definition) return '';
+
+            try {
+                const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(definition)}&langpair=en|ja`);
+                const data = await res.json();
+                if (data.responseStatus === 200) {
+                    return data.responseData.translatedText;
+                }
+            } catch (e) {
+                console.error('Definition translation error:', e);
+            }
+            return '';
         }
 
         // Speech
@@ -943,11 +950,16 @@
                 progressText.textContent = 'ほんやくちゅう...';
                 progressContainer.classList.add('active');
 
+                // Get Japanese word translation
                 const japanese = await getTranslation(result.headword);
-                const explanation = getExplanation(result.headword);
+
+                // Extract definition and translate to Japanese
+                const definition = extractDefinition(result.headword, result.fullText);
+                const japaneseDefinition = await translateDefinition(definition);
+
                 progressContainer.classList.remove('active');
 
-                updateResult(result.headword, result.fullText, japanese, explanation);
+                updateResult(result.headword, result.fullText, japanese, japaneseDefinition);
 
                 // Auto-speak the headword after capture
                 speakEnglish(result.headword);
