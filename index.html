@@ -347,15 +347,17 @@
 
     <script>
         // State
+        let currentHeadword = '';
         let currentText = '';
         let japaneseText = '';
+        let japaneseExplanation = '';
         let stream = null;
         let tesseractWorker = null;
         let detectionRunning = false;
         let currentCardRect = null;
         let apiKey = localStorage.getItem('gcv_api_key') || '';
 
-        // Dictionary
+        // Dictionary - Japanese word translations
         const childrensDictionary = {
             'ant': 'あり', 'bear': 'くま', 'bee': 'はち', 'bird': 'とり',
             'butterfly': 'ちょうちょ', 'cat': 'ねこ', 'cow': 'うし', 'dog': 'いぬ',
@@ -404,6 +406,30 @@
             'chicken': 'にわとり', 'unhappy': 'かなしい', 'under': 'した',
             'understand': 'わかる', 'upright': 'まっすぐ', 'upset': 'かなしい',
             'bright': 'あかるい', 'more': 'もっと', 'month': 'つき'
+        };
+
+        // Dictionary - Japanese explanations for children
+        const childrensDictionaryExplanations = {
+            'moon': 'よるの そらに みえる おおきくて あかるいもの',
+            'sun': 'ひるまの そらに ある あかるくて あついもの',
+            'star': 'よるの そらに キラキラ ひかっている ちいさなもの',
+            'rain': 'そらから おちてくる みず',
+            'snow': 'さむいひに そらから ふってくる しろいもの',
+            'cat': 'ニャーと なく ちいさな どうぶつ',
+            'dog': 'ワンワンと ほえる どうぶつ',
+            'bird': 'そらを とぶ どうぶつ',
+            'fish': 'みずのなかで およぐ どうぶつ',
+            'apple': 'あかくて まるい あまい くだもの',
+            'banana': 'きいろで ながい くだもの',
+            'milk': 'うしから とれる しろい のみもの',
+            'water': 'いきものに ひつような とうめいな のみもの',
+            'book': 'よんで たのしむもの',
+            'ball': 'まるい あそびどうぐ',
+            'car': 'ひとを のせて はしるもの',
+            'house': 'ひとが すむ ばしょ',
+            'tree': 'そとに はえている おおきな しょくぶつ',
+            'flower': 'きれいな いろの しょくぶつ',
+            'more': 'もっと たくさん'
         };
 
         // Elements
@@ -835,6 +861,13 @@
             return '';
         }
 
+        // Japanese explanation for children
+        function getExplanation(word) {
+            if (!word) return '';
+            const lower = word.toLowerCase();
+            return childrensDictionaryExplanations[lower] || '';
+        }
+
         // Speech
         let englishVoice = null, japaneseVoice = null;
 
@@ -853,7 +886,7 @@
                 const u = new SpeechSynthesisUtterance(text);
                 u.lang = 'en-US';
                 if (englishVoice) u.voice = englishVoice;
-                u.rate = 0.6;
+                u.rate = 0.4; // Slower for children
                 speechSynthesis.speak(u);
             }, 100);
         }
@@ -871,9 +904,11 @@
         }
 
         // UI
-        function updateResult(headword, fullText, japanese) {
+        function updateResult(headword, fullText, japanese, explanation) {
+            currentHeadword = headword;
             currentText = fullText;
             japaneseText = japanese;
+            japaneseExplanation = explanation || '';
 
             const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -909,9 +944,13 @@
                 progressContainer.classList.add('active');
 
                 const japanese = await getTranslation(result.headword);
+                const explanation = getExplanation(result.headword);
                 progressContainer.classList.remove('active');
 
-                updateResult(result.headword, result.fullText, japanese);
+                updateResult(result.headword, result.fullText, japanese, explanation);
+
+                // Auto-speak the headword after capture
+                speakEnglish(result.headword);
             } catch (err) {
                 console.error('Error:', err);
                 showError('エラーが おきました');
@@ -921,8 +960,14 @@
             }
         });
 
-        speakBtn.addEventListener('click', () => speakEnglish(currentText));
-        translateBtn.addEventListener('click', () => speakJapanese(japaneseText));
+        // Speak headword in English (slowly for children)
+        speakBtn.addEventListener('click', () => speakEnglish(currentHeadword));
+
+        // Speak Japanese explanation (or translation if no explanation)
+        translateBtn.addEventListener('click', () => {
+            const textToSpeak = japaneseExplanation || japaneseText;
+            speakJapanese(textToSpeak);
+        });
 
         // Init
         async function init() {
