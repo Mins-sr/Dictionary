@@ -74,13 +74,15 @@
             position: absolute;
             pointer-events: none;
             z-index: 9;
-            background: rgba(76, 175, 80, 0.15);
+            background: rgba(76, 175, 80, 0.3);
             transition: all 0.15s ease-out;
             border-radius: 8px;
+            border: 2px solid rgba(76, 175, 80, 0.6);
         }
 
         .card-mask.not-tracking {
-            background: rgba(255, 235, 59, 0.1);
+            background: rgba(255, 235, 59, 0.25);
+            border-color: rgba(255, 235, 59, 0.5);
         }
 
         /* Settings button */
@@ -656,6 +658,8 @@
             cardMask.style.width = width;
             cardMask.style.height = height;
 
+            console.log('Mask updated:', { left, top, width, height });
+
             currentCardRect = rect;
         }
 
@@ -666,6 +670,8 @@
                 if (!detectionRunning) return;
 
                 const cards = detectCards();
+                console.log('Cards detected:', cards.length);
+
                 if (cards.length > 0) {
                     const centerX = video.videoWidth / 2, centerY = video.videoHeight / 2;
                     let closest = cards[0], minDist = Infinity;
