@@ -70,6 +70,19 @@
         .focus-overlay.tracking .corner { border-color: #4caf50; }
         .focus-overlay.not-tracking .corner { border-color: #ffeb3b; }
 
+        .card-mask {
+            position: absolute;
+            pointer-events: none;
+            z-index: 9;
+            background: rgba(76, 175, 80, 0.15);
+            transition: all 0.15s ease-out;
+            border-radius: 8px;
+        }
+
+        .card-mask.not-tracking {
+            background: rgba(255, 235, 59, 0.1);
+        }
+
         /* Settings button */
         .settings-btn {
             position: absolute;
@@ -286,6 +299,8 @@
 
             <button class="settings-btn" id="settingsBtn">⚙️</button>
 
+            <div class="card-mask not-tracking" id="cardMask"></div>
+
             <div class="focus-overlay not-tracking" id="focusOverlay">
                 <div class="corner corner-tl"></div>
                 <div class="corner corner-tr"></div>
@@ -416,6 +431,7 @@
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         const detectCtx = detectCanvas.getContext('2d', { willReadFrequently: true });
         const cameraContainer = document.getElementById('cameraContainer');
+        const cardMask = document.getElementById('cardMask');
         const focusOverlay = document.getElementById('focusOverlay');
         const progressContainer = document.getElementById('progressContainer');
         const progressText = document.getElementById('progressText');
@@ -625,10 +641,20 @@
             const offsetX = (videoRect.width - video.videoWidth * scaleX) / 2;
             const offsetY = (videoRect.height - video.videoHeight * scaleY) / 2;
 
-            focusOverlay.style.left = (rect.x * scaleX + offsetX) + 'px';
-            focusOverlay.style.top = (rect.y * scaleY + offsetY) + 'px';
-            focusOverlay.style.width = (rect.width * scaleX) + 'px';
-            focusOverlay.style.height = (rect.height * scaleY) + 'px';
+            const left = (rect.x * scaleX + offsetX) + 'px';
+            const top = (rect.y * scaleY + offsetY) + 'px';
+            const width = (rect.width * scaleX) + 'px';
+            const height = (rect.height * scaleY) + 'px';
+
+            focusOverlay.style.left = left;
+            focusOverlay.style.top = top;
+            focusOverlay.style.width = width;
+            focusOverlay.style.height = height;
+
+            cardMask.style.left = left;
+            cardMask.style.top = top;
+            cardMask.style.width = width;
+            cardMask.style.height = height;
 
             currentCardRect = rect;
         }
@@ -653,9 +679,13 @@
                     updateOverlay(closest);
                     focusOverlay.classList.remove('not-tracking');
                     focusOverlay.classList.add('tracking');
+                    cardMask.classList.remove('not-tracking');
+                    cardMask.classList.add('tracking');
                 } else {
                     focusOverlay.classList.remove('tracking');
                     focusOverlay.classList.add('not-tracking');
+                    cardMask.classList.remove('tracking');
+                    cardMask.classList.add('not-tracking');
                 }
 
                 requestAnimationFrame(detect);
