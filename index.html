@@ -532,10 +532,9 @@
                 });
                 console.log('Camera stream obtained');
                 video.srcObject = stream;
-                await video.play();
-                console.log('Video playing');
 
-                video.addEventListener('loadedmetadata', () => {
+                // Set up metadata handler BEFORE playing
+                const setupDetection = () => {
                     console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
@@ -543,7 +542,19 @@
                     detectCanvas.height = video.videoHeight / 4;
                     console.log('Starting card detection...');
                     startCardDetection();
-                });
+                };
+
+                // Check if metadata is already loaded
+                if (video.readyState >= 2) {
+                    console.log('Metadata already loaded, setting up immediately');
+                    setupDetection();
+                } else {
+                    console.log('Waiting for loadedmetadata event...');
+                    video.addEventListener('loadedmetadata', setupDetection, { once: true });
+                }
+
+                await video.play();
+                console.log('Video playing');
             } catch (err) {
                 console.error('Camera error:', err);
                 errorMessage.style.display = 'block';
