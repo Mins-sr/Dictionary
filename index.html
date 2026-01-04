@@ -521,6 +521,7 @@
 
         // Initialize camera
         async function initCamera() {
+            console.log('initCamera() called');
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: {
@@ -529,14 +530,18 @@
                         height: { ideal: 720 }
                     }
                 });
+                console.log('Camera stream obtained');
                 video.srcObject = stream;
                 await video.play();
+                console.log('Video playing');
 
                 video.addEventListener('loadedmetadata', () => {
+                    console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     detectCanvas.width = video.videoWidth / 4;
                     detectCanvas.height = video.videoHeight / 4;
+                    console.log('Starting card detection...');
                     startCardDetection();
                 });
             } catch (err) {
@@ -664,10 +669,14 @@
         }
 
         function startCardDetection() {
+            console.log('startCardDetection() called, detectionRunning =', detectionRunning);
             detectionRunning = true;
 
             function detect() {
-                if (!detectionRunning) return;
+                if (!detectionRunning) {
+                    console.log('Detection stopped');
+                    return;
+                }
 
                 const cards = detectCards();
                 console.log('Cards detected:', cards.length);
@@ -1019,13 +1028,18 @@
 
         // Init
         async function init() {
+            console.log('=== App initialization started ===');
             updateApiStatus();
+            console.log('Initializing camera...');
             await initCamera();
             if (!apiKey) {
+                console.log('Initializing Tesseract...');
                 await initTesseract();
             }
+            console.log('=== Initialization complete ===');
         }
 
+        console.log('Script loaded, calling init()');
         init();
     </script>
 </body>
